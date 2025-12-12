@@ -1,11 +1,13 @@
-import Darwin
 import Radare2
 
 public final class R2Core {
-    private let core: UnsafeMutablePointer<RCore>
+    let core: UnsafeMutablePointer<RCore>
+
+    public var config: R2Config
 
     public init() {
-        self.core = r_core_new()!
+        core = r_core_new()!
+        config = R2Config(core.pointee.config!)
     }
 
     deinit {
