@@ -23,6 +23,10 @@ public struct R2Config {
     public func set(_ key: String, string value: String) {
         r_config_set(raw, key, value)
     }
+
+    public func set(_ key: String, colorMode value: R2ColorMode) {
+        r_config_set_i(raw, key, UInt64(value.rawValue))
+    }
 }
 
 public enum R2ColorMode: UInt {
