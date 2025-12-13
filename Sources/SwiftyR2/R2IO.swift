@@ -1,11 +1,11 @@
 import Radare2
 
-public protocol R2IOProvider: AnyObject {
+public protocol R2IOProvider: AnyObject, Sendable {
     func supports(path: String, many: Bool) -> Bool
     func open(path: String, access: R2IOAccess, mode: Int32) throws -> R2IOFile
 }
 
-public protocol R2IOFile: AnyObject {
+public protocol R2IOFile: AnyObject, Sendable {
     func close() throws
     func read(at offset: UInt64, count: Int) throws -> [UInt8]
     func write(at offset: UInt64, bytes: [UInt8]) throws -> Int
@@ -13,12 +13,12 @@ public protocol R2IOFile: AnyObject {
     func setSize(_ size: UInt64) throws
 }
 
-public protocol R2IOAsyncProvider: AnyObject {
+public protocol R2IOAsyncProvider: AnyObject, Sendable {
     func supports(path: String, many: Bool) -> Bool
     func open(path: String, access: R2IOAccess, mode: Int32) async throws -> R2IOAsyncFile
 }
 
-public protocol R2IOAsyncFile: AnyObject {
+public protocol R2IOAsyncFile: AnyObject, Sendable {
     func close() async throws
     func read(at offset: UInt64, count: Int) async throws -> [UInt8]
     func write(at offset: UInt64, bytes: [UInt8]) async throws -> Int

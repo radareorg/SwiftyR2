@@ -16,7 +16,7 @@
         }
     }
 
-    public final class R2IOAsyncProviderAdapter: R2IOProvider {
+    public final class R2IOAsyncProviderAdapter: R2IOProvider, @unchecked Sendable {
         private let asyncProvider: R2IOAsyncProvider
 
         public init(asyncProvider: R2IOAsyncProvider) {
@@ -35,7 +35,7 @@
         }
     }
 
-    public final class R2IOAsyncFileAdapter: R2IOFile {
+    public final class R2IOAsyncFileAdapter: R2IOFile, @unchecked Sendable {
         private let asyncFile: R2IOAsyncFile
 
         public init(asyncFile: R2IOAsyncFile) {
