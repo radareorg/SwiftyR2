@@ -70,6 +70,18 @@ public final class R2Core: @unchecked Sendable {
         }
     }
 
+    public func registerIOPlugin(
+        asyncProvider: R2IOAsyncProvider,
+        uriSchemes: [String]
+    ) async {
+        let adapter = R2IOAsyncProviderAdapter(asyncProvider: asyncProvider)
+
+        await runVoid {
+            _r2io_installPlugin(core: self.core, provider: adapter, uriSchemes: uriSchemes)
+            self.retainedProviders.append(adapter)
+        }
+    }
+
     @inline(__always)
     func run<T>(_ job: @escaping () -> T) async -> T {
         await withCheckedContinuation { cont in
