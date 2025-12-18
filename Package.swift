@@ -17,7 +17,7 @@ let package = Package(
         .binaryTarget(
             name: "Radare2",
             url: "https://build.frida.re/Radare2.xcframework.zip",
-            checksum: "f716d534ff6f371ec399152d5a66be5ec5833c2f8b90c2f8b08e766dd237c3e1"
+            checksum: "c7c44730d3bdad75d8787c8f166d412437c057e5da9c4600132e6850412d11ca"
         ),
 
         .target(
