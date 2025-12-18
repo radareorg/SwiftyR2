@@ -1,36 +1,56 @@
-import Dispatch
+import Foundation
 import Radare2
+
+#if canImport(Darwin)
+    import Darwin
+#else
+    import Glibc
+#endif
 
 public final class R2Core: @unchecked Sendable {
     let core: UnsafeMutablePointer<RCore>
-
     public let config: R2Config
 
     private var retainedProviders: [AnyObject] = []
+    private let executor: CoreThreadExecutor
 
-    private let queue: DispatchQueue
+    public static func create() async -> R2Core {
+        let executor = CoreThreadExecutor()
 
-    public init() {
-        core = r_core_new()!
+        let core: UnsafeMutablePointer<RCore> = await withCheckedContinuation { cont in
+            executor.submit {
+                cont.resume(returning: r_core_new()!)
+            }
+        }
 
-        queue = DispatchQueue(label: "swiftyr2.core")
+        return R2Core(core: core, executor: executor)
+    }
 
-        config = R2Config(
+    private init(core: UnsafeMutablePointer<RCore>, executor: CoreThreadExecutor) {
+        self.core = core
+        self.executor = executor
+        self.config = R2Config(
             raw: core.pointee.config!,
-            run: { [queue] job in
+            run: { [executor] job in
                 await withCheckedContinuation { cont in
-                    queue.async {
+                    executor.submit {
                         job()
                         cont.resume()
                     }
                 }
-            })
+            }
+        )
     }
 
     deinit {
-        queue.sync {
+        let core = self.core
+        let executor = self.executor
+
+        executor.submit { [executor] in
             _r2io_coreWillDeinit(core: core)
             r_core_free(core)
+
+            executor.stop()
         }
     }
 
@@ -85,7 +105,7 @@ public final class R2Core: @unchecked Sendable {
     @inline(__always)
     func run<T>(_ job: @escaping () -> T) async -> T {
         await withCheckedContinuation { cont in
-            queue.async {
+            executor.submit {
                 cont.resume(returning: job())
             }
         }
@@ -94,10 +114,79 @@ public final class R2Core: @unchecked Sendable {
     @inline(__always)
     func runVoid(_ job: @escaping () -> Void) async {
         await withCheckedContinuation { cont in
-            queue.async {
+            executor.submit {
                 job()
                 cont.resume()
             }
         }
+    }
+}
+
+private final class CoreThreadExecutor {
+    private let condition = NSCondition()
+    private var jobs: [() -> Void] = []
+    private var stopped = false
+
+    private var thread: Thread!
+    private var pthreadID: pthread_t? = nil
+
+    init() {
+        thread = Thread { [weak self] in
+            self?.runLoop()
+        }
+        thread.name = "org.radare.swiftyr2.core"
+        thread.qualityOfService = .userInitiated
+        thread.start()
+    }
+
+    deinit {
+        stop()
+    }
+
+    private func runLoop() {
+        pthreadID = pthread_self()
+
+        while true {
+            condition.lock()
+            while jobs.isEmpty && !stopped {
+                condition.wait()
+            }
+
+            if stopped && jobs.isEmpty {
+                condition.unlock()
+                return
+            }
+
+            let job = jobs.removeFirst()
+            condition.unlock()
+
+            autoreleasepool {
+                job()
+            }
+        }
+    }
+
+    private func isOnCoreThread() -> Bool {
+        guard let tid = pthreadID else { return false }
+        return pthread_equal(pthread_self(), tid) != 0
+    }
+
+    func submit(_ job: @escaping () -> Void) {
+        if isOnCoreThread() {
+            job()
+            return
+        }
+
+        condition.lock()
+        jobs.append(job)
+        condition.signal()
+        condition.unlock()
+    }
+
+    func stop() {
+        condition.lock()
+        stopped = true
+        condition.signal()
+        condition.unlock()
     }
 }
