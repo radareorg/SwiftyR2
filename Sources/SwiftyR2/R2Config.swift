@@ -32,7 +32,7 @@ public struct R2Config: Sendable {
     }
 }
 
-public enum R2ColorMode: UInt {
+public enum R2ColorMode: Int32 {
     case disabled = 0
     case mode16 = 1
     case mode256 = 2
