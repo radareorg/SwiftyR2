@@ -5,7 +5,7 @@ let package = Package(
     name: "SwiftyR2",
     platforms: [
         .macOS(.v11),
-        .iOS(.v12),
+        .iOS(.v13),
     ],
     products: [
         .library(
