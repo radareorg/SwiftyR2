@@ -4,10 +4,10 @@ import XCTest
 
 final class SwiftyR2Tests: XCTestCase {
 
-    func testCoreCreationAndSimpleCommand() {
-        let core = R2Core()
+    func testCoreCreationAndSimpleCommand() async throws {
+        let core = await R2Core.create()
 
-        let output = core.cmd("?V")
+        let output = await core.cmd("?V")
         XCTAssertFalse(output.isEmpty, "Expected non-empty output from ?V command")
         XCTAssertTrue(
             output.lowercased().contains("radare2"),

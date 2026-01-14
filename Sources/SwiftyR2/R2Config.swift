@@ -1,6 +1,6 @@
 import Radare2
 
-public struct R2Config: Sendable {
+public struct R2Config: @unchecked Sendable {
     let raw: UnsafeMutablePointer<RConfig>
 
     let run: @Sendable (@escaping () -> Void) async -> Void
