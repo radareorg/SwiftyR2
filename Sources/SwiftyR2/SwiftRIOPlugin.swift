@@ -221,7 +221,7 @@ private let swift_rio_read:
         let n = min(bytes.count, requested)
 
         if n > 0 {
-            bytes.withUnsafeBufferPointer { src in
+            _ = bytes.withUnsafeBufferPointer { src in
                 memcpy(buf, src.baseAddress!, n)
             }
         }
@@ -246,7 +246,7 @@ private let swift_rio_write:
         let len = Int(count)
 
         var bytes = [UInt8](repeating: 0, count: len)
-        bytes.withUnsafeMutableBufferPointer { dst in
+        _ = bytes.withUnsafeMutableBufferPointer { dst in
             memcpy(dst.baseAddress!, buf, len)
         }
 

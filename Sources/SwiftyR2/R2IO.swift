@@ -29,7 +29,7 @@ public protocol R2IOAsyncFile: AnyObject, Sendable {
 public struct R2IOAccess: OptionSet {
     public let rawValue: Int32
 
-    public static let none = R2IOAccess(rawValue: 0)
+    public static let none = R2IOAccess([])
     public static let read = R2IOAccess(rawValue: 4)
     public static let write = R2IOAccess(rawValue: 2)
     public static let execute = R2IOAccess(rawValue: 1)
