@@ -280,34 +280,25 @@ private let swift_rio_seek:
             return UInt64.max
         }
 
-        let size: Int64 = sizeU > UInt64(Int64.max) ? Int64.max : Int64(sizeU)
+        let delta = Int64(bitPattern: rawOffset)
 
-        let curU = box.offset
-        let cur: Int64 = curU > UInt64(Int64.max) ? Int64.max : Int64(curU)
-
-        let signedOffset = Int64(bitPattern: rawOffset)
-
-        var new: Int64
-
+        let new: UInt64
         switch whence {
         case SEEK_SET:
-            new = signedOffset
+            new = rawOffset
         case SEEK_CUR:
-            new = cur &+ signedOffset
+            new = box.offset &+ UInt64(bitPattern: delta)
         case SEEK_END:
-            new = size &+ signedOffset
+            new = sizeU &+ UInt64(bitPattern: delta)
         default:
             return UInt64.max
         }
 
-        if new < 0 { new = 0 }
-        if new > size { new = size }
+        let clamped = min(new, sizeU)
+        box.offset = clamped
+        io.pointee.off = clamped
 
-        let newU = UInt64(new)
-        box.offset = newU
-        io.pointee.off = newU
-
-        return newU
+        return clamped
     }
 
 private let swift_rio_resize:
