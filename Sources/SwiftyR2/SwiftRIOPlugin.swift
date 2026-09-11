@@ -117,7 +117,8 @@ private var swiftRIOPlugin: RIOPlugin = {
         extend: nil,
         accept: nil,
         create: nil,
-        check: swift_rio_check
+        check: swift_rio_check,
+        binuris: nil
     )
 }()
 
