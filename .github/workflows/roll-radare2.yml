@@ -1,0 +1,83 @@
+name: Roll Radare2
+
+on:
+  workflow_dispatch:
+    inputs:
+      r2_ref:
+        description: 'radare2 commit, tag or branch to build'
+        required: true
+        default: 'master'
+      update_package:
+        description: 'Update Package.swift and commit it to main'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  roll:
+    runs-on: macos-15-intel
+    steps:
+    - name: Checkout SwiftyR2
+      uses: actions/checkout@v7
+      with:
+        ref: main
+
+    - name: Checkout radare2
+      uses: actions/checkout@v7
+      with:
+        repository: radareorg/radare2
+        ref: ${{ inputs.r2_ref }}
+        path: radare2
+        fetch-depth: 0
+
+    - name: Compute release name
+      id: meta
+      run: |
+        sha=$(git -C radare2 rev-parse --short=7 HEAD)
+        date=$(date -u +%Y%m%d)
+        echo "sha=$sha" >> "$GITHUB_OUTPUT"
+        echo "tag=$date-$sha" >> "$GITHUB_OUTPUT"
+        echo "asset=Radare2-$date-$sha.xcframework.zip" >> "$GITHUB_OUTPUT"
+
+    - name: Build XCFramework
+      run: make -C radare2/dist/sdk
+
+    - name: Package
+      id: package
+      run: |
+        asset='${{ steps.meta.outputs.asset }}'
+        mv radare2/dist/sdk/Radare2.xcframework.zip "$asset"
+        echo "checksum=$(swift package compute-checksum "$asset")" >> "$GITHUB_OUTPUT"
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: Radare2.xcframework
+        path: ${{ steps.meta.outputs.asset }}
+
+    - name: Create release
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release create '${{ steps.meta.outputs.tag }}' '${{ steps.meta.outputs.asset }}' \
+          --title 'Radare2 ${{ steps.meta.outputs.tag }}' \
+          --notes 'Radare2 XCFramework built from radare2 `${{ steps.meta.outputs.sha }}` (`${{ inputs.r2_ref }}`).'
+
+    - name: Update Package.swift
+      if: ${{ inputs.update_package }}
+      run: |
+        url="${{ github.server_url }}/${{ github.repository }}/releases/download/${{ steps.meta.outputs.tag }}/${{ steps.meta.outputs.asset }}"
+        checksum='${{ steps.package.outputs.checksum }}'
+        /usr/bin/sed -i '' \
+          -e "s|url: \".*\"|url: \"$url\"|" \
+          -e "s|checksum: \".*\"|checksum: \"$checksum\"|" \
+          Package.swift
+        if git diff --quiet Package.swift; then
+          echo 'Package.swift unchanged'
+          exit 0
+        fi
+        git config user.name 'github-actions[bot]'
+        git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+        git commit -m "Bump Radare2.xcframework to ${{ steps.meta.outputs.tag }}" Package.swift
+        git push origin HEAD:main
