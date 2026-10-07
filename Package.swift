@@ -4,8 +4,8 @@ import PackageDescription
 #if canImport(Darwin)
 let radare2Target: Target = .binaryTarget(
     name: "Radare2",
-    url: "https://github.com/radareorg/SwiftyR2/releases/download/20260911-b015691/Radare2-20260911-b015691.xcframework.zip",
-    checksum: "8fc923a9bcb4829248cc587f6463f71c80a48ef8a5c7a7667ff62d96f9dff7ca"
+    url: "https://github.com/radareorg/SwiftyR2/releases/download/20261007-2614bff/Radare2-20261007-2614bff.xcframework.zip",
+    checksum: "6317b3c1051d8425558c8053a22c943611c9523f6548613317b23b0758d77e26"
 )
 #else
 let radare2Target: Target = .systemLibrary(
