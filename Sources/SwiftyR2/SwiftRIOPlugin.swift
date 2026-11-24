@@ -1,3 +1,4 @@
+import Foundation
 import Radare2
 
 internal func _r2io_installPlugin(
@@ -5,6 +6,9 @@ internal func _r2io_installPlugin(
     provider: R2IOProvider,
     uriSchemes: [String]
 ) {
+    registryLock.lock()
+    defer { registryLock.unlock() }
+
     let mgr = pluginManager()
 
     let io = core.pointee.io!
@@ -31,6 +35,9 @@ internal func _r2io_installPlugin(
 }
 
 internal func _r2io_coreWillDeinit(core: UnsafeMutablePointer<RCore>) {
+    registryLock.lock()
+    defer { registryLock.unlock() }
+
     let mgr = pluginManager()
     if let io = core.pointee.io {
         mgr.removeState(for: io)
@@ -43,6 +50,8 @@ internal func _r2io_coreWillDeinit(core: UnsafeMutablePointer<RCore>) {
         }
     }
 }
+
+private let registryLock = NSLock()
 
 private func pluginManager() -> PluginManager {
     if let raw = swiftRIOPlugin.data {
@@ -169,6 +178,8 @@ private let swift_rio_open:
         let box = FileBox(file: file, offset: 0)
         let opaque = UnsafeMutableRawPointer(Unmanaged.passRetained(box).toOpaque())
 
+        registryLock.lock()
+        defer { registryLock.unlock() }
         return r_io_desc_new(io, &swiftRIOPlugin, path, rw, mode, opaque)
     }
 
@@ -177,14 +188,11 @@ private func chooseProvider(
     path: String,
     many: Bool
 ) -> R2IOProvider? {
-    let mgr = pluginManager()
-    let state = mgr.state(for: io)
-    for p in state.providers {
-        if p.supports(path: path, many: many) {
-            return p
-        }
-    }
-    return nil
+    registryLock.lock()
+    let providers = pluginManager().state(for: io).providers
+    registryLock.unlock()
+
+    return providers.first { $0.supports(path: path, many: many) }
 }
 
 private let swift_rio_close: @convention(c) (UnsafeMutablePointer<RIODesc>?) -> Bool = { fd in
